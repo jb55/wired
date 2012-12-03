@@ -1,0 +1,27 @@
+name:                wired
+version:             0.1.0.0
+synopsis:            2D esoteric, minimalistic, box-and-wire programming language
+
+license:             PublicDomain
+license-file:        LICENSE
+author:              Bill Casarin
+maintainer:          bill@casarin.ca
+
+category:            Language
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable wired
+  main-is: Main.hs
+
+  -- Modules included in this executable, other than Main.
+  -- other-modules:
+
+  -- Other library packages from which modules are imported.
+  build-depends: base >=4.5
+               , vector
+               , conduit
+               , bytestring
+               , mtl
+               , lens
+
