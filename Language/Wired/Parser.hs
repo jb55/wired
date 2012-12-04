@@ -4,22 +4,25 @@ module Language.Wired.Parser (
     parseElem
   , getRaw
   , getElem
+  , parsePad
+  , move
+  , topleft, top, topright
+  , left, middle, right
+  , bottomleft, bottom, bottomright
 ) where
 
+import           Control.Applicative
 import           Language.Wired.Types
-import           Control.Lens
+import           Control.Lens hiding (left, right)
 import           Control.Monad (guard)
 import           Data.Vector ((!?))
 import qualified Data.ByteString.Char8 as B
 import           Control.Monad.Error (throwError)
 
-loc :: Int -> Int -> Loc
-loc x y = (x, y)
 
 parseElem :: Char -> Parser Elem
-parseElem 'o'  = return $ Start
 parseElem '-'  = return $ Line Horizontal
-parseElem '|'  = return $ Line Vertical
+parseElem '>'  = return $ Socket
 parseElem '/'  = return $ Line UpRight
 parseElem '\\' = return $ Line UpLeft
 parseElem ' '  = return $ Empty
@@ -30,19 +33,50 @@ parseElem c = do
 getRaw' :: CircuitData -> Int -> Int -> Maybe Char
 getRaw' (getCircuit -> cd) x y = do
   line <- cd !? y
-  guard (x < B.length line)
+  guard (x >= 0 && x < B.length line)
   return $ line `B.index` x
 
-getRaw :: CircuitData -> Int -> Int -> Parser (Maybe Char)
-getRaw cd x y = do
+getRaw :: Int -> Int -> Parser (Maybe Char)
+getRaw x y = do
+  cd <- use pData
   mc <- return $ getRaw' cd x y
-  pLoc .= loc x y
+  pLoc .= (x, y)
   return mc
 
-getElem :: CircuitData -> Int -> Int -> Parser Elem
-getElem cd x y = do
-  raw <- getRaw cd x y
+getElem :: Int -> Int -> Parser Elem
+getElem x y = do
+  raw <- getRaw x y
   e   <- maybe (return TheVoid) parseElem raw
   pElem .= e
   return e
+
+move :: Int -> Int -> Parser Elem
+move mx my = do
+  (x, y) <- use pLoc
+  getElem (x + mx) (y + my)
+
+topleft, top, topright, left, middle, right, bottomleft, bottom, bottomright
+  :: Parser Elem
+
+topleft     = move (-1) (-1)
+top         = move 0    (-1)
+topright    = move 1    (-1)
+left        = move (-1) 0
+middle      = move 0    0
+right       = move 1    0
+bottomleft  = move (-1) 1
+bottom      = move 0    1
+bottomright = move 1    1
+
+peek :: Parser Elem -> Parser Elem
+peek p = do
+  oloc <- use pLoc
+  r    <- p
+  pLoc .= oloc
+  return r
+
+parsePad :: Parser Pad
+parsePad = Pad <$> peek topleft    <*> peek top    <*> peek topright
+               <*> peek left       <*> middle      <*> peek right
+               <*> peek bottomleft <*> peek bottom <*> peek bottomright
 

@@ -20,16 +20,12 @@ sinkCircuitData = CircuitData <$> (lines >+> buildM)
 buildM :: (Applicative f, Monoid (f a), Monad m) => GSink a m (f a)
 buildM = CL.fold (\x y -> x `mappend` pure y) mempty
 
-run :: Parser a -> Either ParseError (a, ParserState)
-run x = (runStateT . runParser) x (ParserState (0,0) Empty)
+run :: CircuitData -> Parser a -> Either ParseError (a, ParserState)
+run cd x = (runStateT . runParser) x (ParserState (0,0) TheVoid cd)
 
 main :: IO ()
 main = do
   out <- runResourceT $ sourceFile "test.txt" $$ sinkCircuitData
-  let ge = getElem out
-  print $ run $ do
-    a <- ge 1 1
-    b <- ge 1 0
-    c <- ge 50 50
-    return (a, b, c)
-  print out
+  print $ run out $ do
+    move 1 1
+    parsePad
