@@ -41,7 +41,7 @@ toChar :: Elem -> Char
 toChar (Line Horizontal) = '-'
 toChar (Line UpRight)    = '/'
 toChar (Line UpLeft)     = '\\'
-toChar Empty             = '_'
+toChar Empty             = ' '
 toChar Socket            = '>'
 toChar TheVoid           = 'X'
 toChar _                 = '?'
@@ -49,9 +49,9 @@ toChar _                 = '?'
 instance Show Pad where
   show (Pad tl t tr l m r bl b br) =
     unlines [ ""
-      , toChar tl:' ':toChar t:' ':toChar tr:[]
-      , toChar l :' ':toChar m:' ':toChar r :[]
-      , toChar bl:' ':toChar b:' ':toChar br:[]
+      , toChar tl:toChar t:toChar tr:[]
+      , toChar l :toChar m:toChar r :[]
+      , toChar bl:toChar b:toChar br:[]
     ]
 
 data Orientation = Horizontal
