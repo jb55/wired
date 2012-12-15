@@ -6,6 +6,7 @@ module Language.Wired.Types (
     ParserState(..)
   , ParseError(..)
   , Parser(..)
+  , Located(..)
   , Loc
 
     -- | * Misc visualization
@@ -19,6 +20,7 @@ module Language.Wired.Types (
     -- | * Circuit types
   , CircuitData(..)
   , Orientation(..)
+  , Fork
   , Elem(..)
 ) where
 
@@ -36,6 +38,8 @@ data Pad = Pad !Elem !Elem !Elem
                !Elem !Elem !Elem
                !Elem !Elem !Elem
                deriving (Eq, Ord)
+
+type Fork = [Located Elem]
 
 toChar :: Elem -> Char
 toChar (Line Horizontal) = '-'
@@ -64,6 +68,7 @@ data Elem = Start
           | Empty
           | Socket
           | TheVoid
+          | C !Char
           | Line !Orientation
           deriving (Show, Eq, Ord)
 
@@ -73,16 +78,26 @@ data ParserState = ParserState { _pLoc  :: Loc
                                , _pData :: CircuitData
                                } deriving (Show)
 
+data Located a = Located Loc a
+               deriving (Show, Eq, Ord)
+
 $(makeLenses ''ParserState)
 
 data ParseError = InvalidChar Char Loc
                 | OutOfBounds Loc
+                | Failure String Loc
                 deriving (Show, Eq, Ord)
+
+peLoc :: ParseError -> Loc
+peLoc (InvalidChar _ l) = l
+peLoc (OutOfBounds  l)  = l
+peLoc (Failure _ l)     = l
 
 instance Error ParseError where
   noMsg = InvalidChar '\0' (0, 0)
 
 newtype Parser a = Parser { runParser :: StateT ParserState (Either ParseError) a }
                  deriving ( Monad, Functor, MonadError ParseError
-                          , MonadState ParserState, Applicative)
+                          , MonadState ParserState, Applicative, Alternative
+                          )
 

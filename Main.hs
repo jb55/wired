@@ -27,5 +27,5 @@ main :: IO ()
 main = do
   out <- runResourceT $ sourceFile "test.txt" $$ sinkCircuitData
   print $ run out $ do
-    move 0 0
-    parsePad
+    moveTo 5 1
+    parseFork
