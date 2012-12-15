@@ -95,13 +95,8 @@ satisfy pred = do
 --       /
 --     ----
 --       \
---
--- This wouldn't parse
---
---
---
 parseFork :: Parser Fork
-parseFork = filterP (not . null) $ whateverWorks $ located . peek <$> [
+parseFork = whateverWorks_ $ peek . located <$> [
     topright    >> isLine UpRight
   , right       >> isAnyLine
   , bottomright >> isLine UpLeft
@@ -127,6 +122,9 @@ located p = do
   r <- p
   l <- use pLoc
   return $ Located l r
+
+whateverWorks_ :: [Parser a] -> Parser [a]
+whateverWorks_ = filterP (not . null) . whateverWorks
 
 whateverWorks :: [Parser a] -> Parser [a]
 whateverWorks = fmap catMaybes . sequence . map optional
