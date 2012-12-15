@@ -9,6 +9,9 @@ module Language.Wired.Types (
   , Located(..)
   , Loc
 
+    -- | * Type classes
+  , IsLocated(..)
+
     -- | * Misc visualization
   , Pad(..)
 
@@ -43,8 +46,8 @@ type Fork = [Located Elem]
 
 toChar :: Elem -> Char
 toChar (Line Horizontal) = '-'
-toChar (Line UpRight)    = '/'
-toChar (Line UpLeft)     = '\\'
+toChar (Line SlantRight)    = '/'
+toChar (Line SlantLeft)     = '\\'
 toChar Empty             = ' '
 toChar Socket            = '>'
 toChar TheVoid           = 'X'
@@ -60,8 +63,8 @@ instance Show Pad where
 
 data Orientation = Horizontal
                  | Vertical
-                 | UpRight
-                 | UpLeft
+                 | SlantRight
+                 | SlantLeft
                  deriving (Show, Eq, Ord)
 
 data Elem = Start
@@ -78,10 +81,19 @@ data ParserState = ParserState { _pLoc  :: Loc
                                , _pData :: CircuitData
                                } deriving (Show)
 
+class IsLocated a where
+  locOf :: a -> Loc
+
 data Located a = Located Loc a
                deriving (Show, Eq, Ord)
 
+instance IsLocated (Located a) where
+  locOf (Located l _) = l
+
 $(makeLenses ''ParserState)
+
+instance IsLocated ParserState where
+  locOf ps = ps^.pLoc
 
 data ParseError = InvalidChar Char Loc
                 | OutOfBounds Loc

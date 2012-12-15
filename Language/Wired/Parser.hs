@@ -7,6 +7,8 @@ module Language.Wired.Parser (
   , moveTo
   , parsePad
   , move
+  , rightLine
+  , followLine
   , topleft, top, topright
   , left, middle, right
   , bottomleft, bottom, bottomright
@@ -25,8 +27,8 @@ import           Data.Maybe (catMaybes)
 parseElem :: Char -> Parser Elem
 parseElem '-'  = return $ Line Horizontal
 parseElem '>'  = return $ Socket
-parseElem '/'  = return $ Line UpRight
-parseElem '\\' = return $ Line UpLeft
+parseElem '/'  = return $ Line SlantRight
+parseElem '\\' = return $ Line SlantLeft
 parseElem ' '  = return $ Empty
 parseElem c = do
   l <- use pLoc
@@ -70,6 +72,22 @@ bottomleft  = move (-1) 1
 bottom      = move 0    1
 bottomright = move 1    1
 
+topLine, bottomLine, rightLine :: Parser Elem
+topLine    = topright >> isLine SlantRight
+bottomLine = bottomright >> isLine SlantLeft
+rightLine  = right >> isAnyLine
+
+forwardLines :: [Parser Elem]
+forwardLines = [topLine, rightLine, bottomLine]
+
+followLine :: Parser Elem
+followLine = do
+  xs <- optional parseFork
+  l  <- use pLoc
+  case xs of
+    Just [x] -> moveTo (fst $ locOf x) (snd $ locOf x)
+    _        -> throwError $ Failure "line ended" l
+
 peek :: Parser a -> Parser a
 peek p = do
   oloc <- use pLoc
@@ -96,11 +114,7 @@ satisfy pred = do
 --     ----
 --       \
 parseFork :: Parser Fork
-parseFork = whateverWorks_ $ peek . located <$> [
-    topright    >> isLine UpRight
-  , right       >> isAnyLine
-  , bottomright >> isLine UpLeft
-  ]
+parseFork = whateverWorks $ peek . located <$> forwardLines
 
 filterP :: (a -> Bool) -> Parser a -> Parser a
 filterP pred p = do
@@ -123,8 +137,5 @@ located p = do
   l <- use pLoc
   return $ Located l r
 
-whateverWorks_ :: [Parser a] -> Parser [a]
-whateverWorks_ = filterP (not . null) . whateverWorks
-
 whateverWorks :: [Parser a] -> Parser [a]
-whateverWorks = fmap catMaybes . sequence . map optional
+whateverWorks = filterP (not . null) . fmap catMaybes . sequence . map optional
